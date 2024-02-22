@@ -7,6 +7,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Recover;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
 import org.springframework.web.client.RestTemplate;
@@ -33,6 +36,17 @@ public class KakaoAddressSearchService {
     @Value("${kakao.rest.api.key}")
     private String kakaoRestApiKey;
 
+
+    /*
+    @Retryable: 해당 메서드가 재시도 되어야 함을 표시한다. 이 어노테이션은 재시도될 예외 유형, 최대 시도 횟수 및 재시도 간격 등을 지정할 수 있다.
+    maxAttempts: 몇 번 재시도할 것인지
+    backoff = @Backoff(delay = n): 몇 초의 간격을 두고 재시도할 것인지
+     */
+    @Retryable(
+            value = {RuntimeException.class},
+            maxAttempts = 2,
+            backoff = @Backoff(delay = 2000)
+    )
     public KakaoApiResponseDto requestAddressSearch(String address) {
 
         if(ObjectUtils.isEmpty(address)) return null;
@@ -45,5 +59,16 @@ public class KakaoAddressSearchService {
 
         // kakao api 호출
         return restTemplate.exchange(uri, HttpMethod.GET, httpEntity, KakaoApiResponseDto.class).getBody();
+    }
+
+    /*
+    @Recover: 모든 재시도가 실패한 경우 호출할 메서드를 지정한다.
+    원본 함수와 해당 함수의 리턴 타입은 동일하게 설정해야 한다.
+     */
+    @Recover
+    public KakaoApiResponseDto recover(RuntimeException e, String address) {
+        log.error("All the retries failed. address: {}, error: {}", address, e.getMessage());
+
+        return null;
     }
 }
