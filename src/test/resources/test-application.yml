@@ -1,0 +1,10 @@
+
+spring:
+  config.activate.on-profile: test
+  datasource.url: jdbc:h2:mem:testdb
+  datasource:
+    driver-class-name: org.h2.Driver
+kakao:
+  rest:
+    api:
+      key: 1100a91c30a29248c35127491e778c8e
